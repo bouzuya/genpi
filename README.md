@@ -24,4 +24,14 @@ $ genpi --katakana | jq .
   "last_name_kana": "ウエダ",
   "sex": "female"
 }
+
+$ genpi -- --katakana --halfwidth | jq .
+{
+  "date_of_birth": "1980-09-18",
+  "first_name": "治",
+  "first_name_kana": "ｵｻﾑ",
+  "last_name": "大貫",
+  "last_name_kana": "ｵｵﾇｷ",
+  "sex": "male"
+}
 ```
