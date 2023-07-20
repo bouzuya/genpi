@@ -44,6 +44,29 @@ struct Name {
     last_name_kana: String,
 }
 
+impl Name {
+    pub fn in_katakana(self) -> Self {
+        Self {
+            first_name_kana: Self::hiragana_to_katakana(&self.first_name_kana).unwrap(),
+            last_name_kana: Self::hiragana_to_katakana(&self.last_name_kana).unwrap(),
+            ..self
+        }
+    }
+
+    fn hiragana_to_katakana(s: &str) -> anyhow::Result<String> {
+        s.chars()
+            .map(|c: char| {
+                let b = c as u32;
+                if !(0x3041..=0x3096).contains(&b) {
+                    Err(anyhow::anyhow!("{} is not hiragana", c))
+                } else {
+                    Ok(char::from_u32(b + 0x0060).unwrap())
+                }
+            })
+            .collect::<anyhow::Result<String>>()
+    }
+}
+
 fn choose<T>(a: &[T]) -> &T {
     &a[thread_rng().gen_range(0..a.len())]
 }
@@ -130,11 +153,29 @@ fn gen_sex() -> Sex {
     *choose(&[Sex::Female, Sex::Male])
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+#[derive(Debug, clap::Parser)]
+struct Cli {
+    /// Print kana in katakana
+    #[arg(long)]
+    katakana: bool,
+}
+
+async fn gen_pi(is_katakana: bool) -> anyhow::Result<PI> {
     let sex = gen_sex();
     let names = gen_names(sex).await?;
-    let pi = PI::from((choose(&names).clone(), sex, gen_date_of_birth()));
+    let name = choose(&names).clone();
+    let name = if is_katakana {
+        name.in_katakana()
+    } else {
+        name
+    };
+    Ok(PI::from((name, sex, gen_date_of_birth())))
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let cli = <Cli as clap::Parser>::parse();
+    let pi = gen_pi(cli.katakana).await?;
     println!("{}", serde_json::to_string(&pi)?);
     Ok(())
 }
