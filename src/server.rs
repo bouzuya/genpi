@@ -5,13 +5,27 @@ use std::{
 };
 
 use anyhow::Context;
-use axum::{http::StatusCode, routing::get, Router, Server};
+use axum::{extract::Query, http::StatusCode, routing::get, Router, Server};
 
 use crate::pi::{KanaForm, PI};
 
-async fn get_root() -> Result<String, StatusCode> {
+#[derive(serde::Deserialize)]
+struct GetRootQuery {
+    halfwidth: Option<bool>,
+    katakana: Option<bool>,
+}
+
+async fn get_root(Query(q): Query<GetRootQuery>) -> Result<String, StatusCode> {
+    let is_katakana = q.katakana.unwrap_or_default();
+    let is_halfwidth = q.halfwidth.unwrap_or_default();
+    let kana_form = match (is_halfwidth, is_katakana) {
+        (false, false) => KanaForm::Hiragana,
+        (false, true) => KanaForm::Katakana,
+        (true, false) => return Err(StatusCode::BAD_REQUEST),
+        (true, true) => KanaForm::HalfwidthKana,
+    };
     // TODO: cache names
-    let pi = PI::gen(KanaForm::Hiragana)
+    let pi = PI::gen(kana_form)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     serde_json::to_string(&pi).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
