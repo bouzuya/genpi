@@ -1,0 +1,7 @@
+version: "3"
+services:
+  rust:
+    build: ./docker/dev
+    tty: true
+    volumes:
+      - .:/usr/src/app
