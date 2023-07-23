@@ -1,0 +1,64 @@
+name: ci
+on:
+  push:
+    branches:
+      - '*'
+jobs:
+  deploy:
+    # secrets:
+    #   GCP_PROJECT_ID
+    #   GCP_PROJECT_NUMBER
+    #   GCP_REGION
+    #   GCP_SERVICE
+    env:
+      IMAGE_URL: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_SERVICE }}/${{ secrets.GCP_SERVICE }}:${{ github.sha }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    needs: test
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - id: auth
+        uses: google-github-actions/auth@v1
+        with:
+          service_account: "deploy-${{ secrets.GCP_SERVICE }}@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+          token_format: "access_token"
+          workload_identity_provider: "projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ secrets.GCP_SERVICE }}-pool/providers/${{ secrets.GCP_SERVICE }}-provider"
+      - uses: google-github-actions/setup-gcloud@v1
+      - uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.GCP_REGION }}-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
+      - run: |-
+          docker build --file docker/production/Dockerfile --tag ${IMAGE_URL} .
+          docker push ${IMAGE_URL}
+      - run: |-
+          gcloud run deploy ${{ secrets.GCP_SERVICE }} \
+            --allow-unauthenticated \
+            --args='--server' \
+            --image ${IMAGE_URL} \
+            --max-instances '1' \
+            --memory '1024Mi' \
+            --platform 'managed' \
+            --quiet \
+            --region ${{ secrets.GCP_REGION }} \
+            --service-account run-${{ secrets.GCP_SERVICE }}@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            target/
+            ~/.cargo/bin/
+            ~/.cargo/git/db/
+            ~/.cargo/registry/cache/
+            ~/.cargo/registry/index/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - run: cargo fmt -- --check
+      - run: cargo clippy -- -D warnings
+      - run: cargo test
