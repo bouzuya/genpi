@@ -5,3 +5,6 @@ services:
     tty: true
     volumes:
       - .:/usr/src/app
+      - rust_target_dir:/tmp/target
+volumes:
+  rust_target_dir:
