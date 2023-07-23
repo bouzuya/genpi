@@ -10,3 +10,5 @@ RUN apt-get update && apt-get install -y \
 RUN rustup component add \
   clippy \
   rustfmt
+RUN cargo install \
+  cargo-watch
