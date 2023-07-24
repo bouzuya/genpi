@@ -29,17 +29,17 @@ impl From<(Name, Sex, DateOfBirth)> for PI {
 }
 
 #[derive(Debug, serde::Serialize)]
-struct DateOfBirth(String);
+pub struct DateOfBirth(String);
 
 #[derive(Clone, Copy, Debug, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
-enum Sex {
+pub enum Sex {
     Female,
     Male,
 }
 
 #[derive(Clone, Debug, serde::Serialize)]
-struct Name {
+pub struct Name {
     first_name: String,
     first_name_kana: String,
     last_name: String,
@@ -179,11 +179,11 @@ impl Name {
     }
 }
 
-fn choose<T>(a: &[T]) -> &T {
+pub fn choose<T>(a: &[T]) -> &T {
     &a[thread_rng().gen_range(0..a.len())]
 }
 
-fn gen_date_of_birth() -> DateOfBirth {
+pub fn gen_date_of_birth() -> DateOfBirth {
     let mut rng = thread_rng();
     let current_year = OffsetDateTime::now_utc().year();
     let year = rng.gen_range(current_year - 120..=current_year);
@@ -204,7 +204,7 @@ fn gen_date_of_birth() -> DateOfBirth {
     DateOfBirth(format!("{:04}-{:02}-{:02}", year, month, day))
 }
 
-async fn gen_names(sex: Sex) -> anyhow::Result<Vec<Name>> {
+pub async fn gen_names(sex: Sex) -> anyhow::Result<Vec<Name>> {
     let sex = match sex {
         Sex::Female => "female",
         Sex::Male => "male",
@@ -261,7 +261,7 @@ async fn gen_names(sex: Sex) -> anyhow::Result<Vec<Name>> {
     Ok(names)
 }
 
-fn gen_sex() -> Sex {
+pub fn gen_sex() -> Sex {
     *choose(&[Sex::Female, Sex::Male])
 }
 
