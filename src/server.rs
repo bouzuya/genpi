@@ -1,12 +1,10 @@
 use std::{
-    env,
     net::{IpAddr, SocketAddr},
     str::FromStr,
     sync::Arc,
     time::{Duration, Instant},
 };
 
-use anyhow::Context;
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -15,7 +13,10 @@ use axum::{
 };
 use tokio::sync::Mutex;
 
-use crate::pi::{choose, gen_date_of_birth, gen_names, gen_sex, KanaForm, Name, Sex, PI};
+use crate::{
+    config::Config,
+    pi::{choose, gen_date_of_birth, gen_names, gen_sex, KanaForm, Name, Sex, PI},
+};
 
 #[derive(serde::Deserialize)]
 struct GetRootQuery {
@@ -97,14 +98,10 @@ pub async fn run_server() -> anyhow::Result<()> {
         .route("/healthz", get(|| async { "OK" }))
         .with_state(shared_state);
 
-    let port_as_string = env::var("PORT").or_else(|e| match e {
-        env::VarError::NotPresent => Ok("3000".to_owned()),
-        env::VarError::NotUnicode(_) => anyhow::bail!("PORT is not unicode"),
-    })?;
-    let port = u16::from_str(port_as_string.as_str()).context("PORT range is (0..=65535)")?;
+    let config = Config::from_env()?;
     let socket_addr = SocketAddr::new(
         IpAddr::from_str("0.0.0.0").expect("0.0.0.0 is valid host"),
-        port,
+        config.port,
     );
 
     Ok(Server::bind(&socket_addr)
