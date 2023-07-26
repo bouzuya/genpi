@@ -45,7 +45,8 @@ jobs:
             --platform 'managed' \
             --quiet \
             --region ${{ secrets.GCP_REGION }} \
-            --service-account run-${{ secrets.GCP_SERVICE }}@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+            --service-account run-${{ secrets.GCP_SERVICE }}@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
+            --set-env-vars "BASE_PATH=/lab/genpi"
   test:
     runs-on: ubuntu-latest
     steps:
