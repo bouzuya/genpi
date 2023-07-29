@@ -1,3 +1,1 @@
-mod generate_pi;
-
-pub use generate_pi::*;
+pub mod generate_pi;

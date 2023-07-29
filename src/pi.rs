@@ -215,7 +215,7 @@ pub trait NameGenerator {
 }
 
 pub trait HasNameGenerator {
-    type NameGenerator: NameGenerator;
+    type NameGenerator: NameGenerator + Send + Sync;
     fn name_generator(&self) -> &Self::NameGenerator;
 }
 
@@ -243,7 +243,7 @@ impl Default for NamesCache {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Clone, Debug, thiserror::Error)]
 pub enum GenNameError {
     #[error("request failure")]
     RequestFailure,

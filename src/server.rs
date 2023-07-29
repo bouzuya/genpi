@@ -7,24 +7,38 @@ use axum::{routing::get, Router, Server};
 
 use crate::{
     config::Config,
-    handler::{generate_pi, AppState},
+    handler::generate_pi::generate_pi,
+    pi::{HasNameGenerator, NamesCache},
 };
+
+#[derive(Clone, Debug)]
+pub struct AppState {
+    name_generator: NamesCache,
+}
+
+impl HasNameGenerator for AppState {
+    type NameGenerator = NamesCache;
+
+    fn name_generator(&self) -> &Self::NameGenerator {
+        &self.name_generator
+    }
+}
 
 pub async fn run_server() -> anyhow::Result<()> {
     let config = Config::from_env()?;
 
-    let shared_state = AppState::default();
-    let router = Router::new()
-        .route("/", get(generate_pi))
-        .route("/healthz", get(|| async { "OK" }));
+    let state = AppState {
+        name_generator: NamesCache::default(),
+    };
+    let router = Router::new().merge(generate_pi::<AppState>());
     let router = if config.base_path.is_empty() {
         router
     } else {
         Router::new()
-            .route("/", get(generate_pi))
+            .route("/", get(|| async { "OK" }))
             .nest(&config.base_path, router)
     }
-    .with_state(shared_state);
+    .with_state(state);
 
     let socket_addr = SocketAddr::new(
         IpAddr::from_str("0.0.0.0").expect("0.0.0.0 is valid host"),
