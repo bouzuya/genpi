@@ -209,12 +209,29 @@ pub fn gen_date_of_birth() -> DateOfBirth {
     DateOfBirth(format!("{:04}-{:02}-{:02}", year, month, day))
 }
 
+#[async_trait::async_trait]
+pub trait NameGenerator {
+    async fn generate(&self, sex: Sex) -> Result<Name, GenNameError>;
+}
+
+pub trait HasNameGenerator {
+    type NameGenerator: NameGenerator;
+    fn name_generator(&self) -> &Self::NameGenerator;
+}
+
 type Names = Vec<Name>;
 
 #[derive(Clone, Debug)]
 pub struct NamesCache {
     female_names: Arc<Mutex<Option<(Instant, Names)>>>,
     male_names: Arc<Mutex<Option<(Instant, Names)>>>,
+}
+
+#[async_trait::async_trait]
+impl NameGenerator for NamesCache {
+    async fn generate(&self, sex: Sex) -> Result<Name, GenNameError> {
+        gen_name(self, sex).await
+    }
 }
 
 impl Default for NamesCache {
@@ -234,7 +251,7 @@ pub enum GenNameError {
     Conflict,
 }
 
-pub async fn gen_name(cache: NamesCache, sex: Sex) -> Result<Name, GenNameError> {
+async fn gen_name(cache: &NamesCache, sex: Sex) -> Result<Name, GenNameError> {
     let mut locked = match sex {
         Sex::Female => cache
             .female_names
@@ -338,7 +355,7 @@ pub enum KanaForm {
 impl PI {
     pub async fn gen(kana_form: KanaForm) -> anyhow::Result<Self> {
         let sex = gen_sex();
-        let name = gen_name(NamesCache::default(), sex).await?;
+        let name = gen_name(&NamesCache::default(), sex).await?;
         let name = match kana_form {
             KanaForm::Hiragana => name,
             KanaForm::Katakana => name.in_katakana(),

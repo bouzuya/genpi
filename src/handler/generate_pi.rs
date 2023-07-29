@@ -3,7 +3,9 @@ use axum::{
     http::StatusCode,
 };
 
-use crate::pi::{gen_date_of_birth, gen_name, gen_sex, GenNameError, KanaForm, NamesCache, PI};
+use crate::pi::{
+    gen_date_of_birth, gen_sex, GenNameError, KanaForm, NameGenerator, NamesCache, PI,
+};
 
 #[derive(serde::Deserialize)]
 pub struct GetRootQuery {
@@ -14,7 +16,7 @@ pub struct GetRootQuery {
 pub type AppState = NamesCache;
 
 pub async fn generate_pi(
-    State(app_state): State<AppState>,
+    State(name_generator): State<AppState>,
     Query(q): Query<GetRootQuery>,
 ) -> Result<String, StatusCode> {
     let is_katakana = q.katakana.unwrap_or_default();
@@ -27,7 +29,7 @@ pub async fn generate_pi(
     };
 
     let sex = gen_sex();
-    let name = gen_name(app_state, sex).await.map_err(|e| match e {
+    let name = name_generator.generate(sex).await.map_err(|e| match e {
         GenNameError::RequestFailure => StatusCode::INTERNAL_SERVER_ERROR,
         GenNameError::Conflict => StatusCode::CONFLICT,
     })?;
