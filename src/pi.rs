@@ -1,9 +1,14 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use anyhow::{bail, ensure, Context};
 use rand::{thread_rng, Rng};
 use scraper::{Html, Selector};
 use time::OffsetDateTime;
+use tokio::sync::Mutex;
 
 #[derive(Debug, serde::Serialize)]
 pub struct PI {
@@ -179,7 +184,7 @@ impl Name {
     }
 }
 
-pub fn choose<T>(a: &[T]) -> &T {
+fn choose<T>(a: &[T]) -> &T {
     &a[thread_rng().gen_range(0..a.len())]
 }
 
@@ -204,7 +209,66 @@ pub fn gen_date_of_birth() -> DateOfBirth {
     DateOfBirth(format!("{:04}-{:02}-{:02}", year, month, day))
 }
 
-pub async fn gen_names(sex: Sex) -> anyhow::Result<Vec<Name>> {
+type Names = Vec<Name>;
+
+#[derive(Clone, Debug)]
+pub struct NamesCache {
+    female_names: Arc<Mutex<Option<(Instant, Names)>>>,
+    male_names: Arc<Mutex<Option<(Instant, Names)>>>,
+}
+
+impl Default for NamesCache {
+    fn default() -> Self {
+        Self {
+            female_names: Arc::new(Mutex::new(None)),
+            male_names: Arc::new(Mutex::new(None)),
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum GenNameError {
+    #[error("request failure")]
+    RequestFailure,
+    #[error("conflict")]
+    Conflict,
+}
+
+pub async fn gen_name(cache: NamesCache, sex: Sex) -> Result<Name, GenNameError> {
+    let mut locked = match sex {
+        Sex::Female => cache
+            .female_names
+            .try_lock()
+            .map_err(|_| GenNameError::Conflict)?,
+        Sex::Male => cache
+            .male_names
+            .try_lock()
+            .map_err(|_| GenNameError::Conflict)?,
+    };
+    let name = match locked.as_mut() {
+        Some((instant, names)) => {
+            if instant.elapsed() > Duration::new(5, 0) {
+                *instant = Instant::now();
+                *names = gen_names(sex)
+                    .await
+                    .map_err(|_| GenNameError::RequestFailure)?
+            }
+            choose(names).clone()
+        }
+        None => {
+            let instant = Instant::now();
+            let names = gen_names(sex)
+                .await
+                .map_err(|_| GenNameError::RequestFailure)?;
+            let name = choose(&names).clone();
+            *locked = Some((instant, names));
+            name
+        }
+    };
+    Ok(name)
+}
+
+async fn gen_names(sex: Sex) -> anyhow::Result<Names> {
     let sex = match sex {
         Sex::Female => "female",
         Sex::Male => "male",
@@ -274,8 +338,7 @@ pub enum KanaForm {
 impl PI {
     pub async fn gen(kana_form: KanaForm) -> anyhow::Result<Self> {
         let sex = gen_sex();
-        let names = gen_names(sex).await?;
-        let name = choose(&names).clone();
+        let name = gen_name(NamesCache::default(), sex).await?;
         let name = match kana_form {
             KanaForm::Hiragana => name,
             KanaForm::Katakana => name.in_katakana(),
