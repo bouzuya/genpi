@@ -436,6 +436,7 @@ name = "genpi"
 version = "0.3.2"
 dependencies = [
  "anyhow",
+ "async-trait",
  "axum",
  "clap",
  "rand",
