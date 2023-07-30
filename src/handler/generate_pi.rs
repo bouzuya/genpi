@@ -2,7 +2,7 @@ use axum::{
     extract::{Query, State},
     http::StatusCode,
     routing::get,
-    Router,
+    Json, Router,
 };
 
 use crate::pi::{
@@ -18,7 +18,7 @@ pub struct GetRootQuery {
 async fn handler<T>(
     State(state): State<T>,
     Query(q): Query<GetRootQuery>,
-) -> Result<String, StatusCode>
+) -> Result<Json<PI>, StatusCode>
 where
     T: Clone + HasNameGenerator + Send + Sync,
 {
@@ -45,7 +45,7 @@ where
         KanaForm::HalfwidthKana => name.in_halfwidth_kana(),
     };
     let pi = PI::from((name, sex, gen_date_of_birth()));
-    serde_json::to_string(&pi).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    Ok(Json(pi))
 }
 
 pub fn generate_pi<T>() -> Router<T>
