@@ -439,6 +439,7 @@ dependencies = [
  "async-trait",
  "axum",
  "clap",
+ "hyper",
  "rand",
  "reqwest",
  "scraper",
@@ -448,6 +449,7 @@ dependencies = [
  "thiserror",
  "time",
  "tokio",
+ "tower",
 ]
 
 [[package]]

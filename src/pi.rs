@@ -45,10 +45,10 @@ pub enum Sex {
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Name {
-    first_name: String,
-    first_name_kana: String,
-    last_name: String,
-    last_name_kana: String,
+    pub first_name: String,
+    pub first_name_kana: String,
+    pub last_name: String,
+    pub last_name_kana: String,
 }
 
 impl Name {

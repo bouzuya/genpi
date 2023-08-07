@@ -54,3 +54,56 @@ where
 {
     Router::new().route("/", get(handler::<T>))
 }
+
+#[cfg(test)]
+mod tests {
+    use axum::{body::Body, http::Request};
+    use tower::ServiceExt;
+
+    use crate::pi::{Name, Sex};
+
+    use super::*;
+
+    #[derive(Clone, Debug)]
+    struct MockNameGenerator;
+
+    #[async_trait::async_trait]
+    impl NameGenerator for MockNameGenerator {
+        async fn generate(&self, _sex: Sex) -> Result<Name, GenNameError> {
+            Ok(Name {
+                first_name: "山田".to_string(),
+                first_name_kana: "やまだ".to_string(),
+                last_name: "太郎".to_string(),
+                last_name_kana: "たろう".to_string(),
+            })
+        }
+    }
+
+    #[derive(Clone, Debug)]
+    struct MockApp {
+        name_generator: MockNameGenerator,
+    }
+
+    impl HasNameGenerator for MockApp {
+        type NameGenerator = MockNameGenerator;
+        fn name_generator(&self) -> &Self::NameGenerator {
+            &self.name_generator
+        }
+    }
+
+    #[tokio::test]
+    async fn test() -> anyhow::Result<()> {
+        let app = generate_pi().with_state(MockApp {
+            name_generator: MockNameGenerator,
+        });
+
+        let response = app
+            .oneshot(Request::builder().uri("/").body(Body::empty())?)
+            .await?;
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        // TODO: test body
+        Ok(())
+    }
+}
