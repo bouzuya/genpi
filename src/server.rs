@@ -7,8 +7,8 @@ use axum::{routing::get, Router, Server};
 
 use crate::{
     config::Config,
-    handler::generate_pi::generate_pi,
-    pi::{HasNameGenerator, NamesCache},
+    handler::generate_pi,
+    pi::{HasNameGenerator, HasPiGenerator, NamesCache},
 };
 
 #[derive(Clone, Debug)]
@@ -24,13 +24,21 @@ impl HasNameGenerator for AppState {
     }
 }
 
+impl HasPiGenerator for AppState {
+    type PiGenerator = NamesCache;
+
+    fn pi_generator(&self) -> &Self::PiGenerator {
+        &self.name_generator
+    }
+}
+
 pub async fn run_server() -> anyhow::Result<()> {
     let config = Config::from_env()?;
 
     let state = AppState {
         name_generator: NamesCache::default(),
     };
-    let router = Router::new().merge(generate_pi::<AppState>());
+    let router = Router::new().merge(generate_pi::route::<AppState>());
     let router = if config.base_path.is_empty() {
         router
     } else {

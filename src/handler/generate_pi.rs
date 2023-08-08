@@ -5,9 +5,7 @@ use axum::{
     Json, Router,
 };
 
-use crate::pi::{
-    gen_date_of_birth, gen_sex, GenNameError, HasNameGenerator, KanaForm, NameGenerator, PI,
-};
+use crate::pi::{GenNameError, GenPiError, HasPiGenerator, KanaForm, PiGenerator, PI};
 
 #[derive(serde::Deserialize)]
 pub struct GetRootQuery {
@@ -20,9 +18,9 @@ async fn handler<T>(
     Query(q): Query<GetRootQuery>,
 ) -> Result<Json<PI>, StatusCode>
 where
-    T: Clone + HasNameGenerator + Send + Sync,
+    T: Clone + HasPiGenerator + Send + Sync,
 {
-    let name_generator = state.name_generator();
+    let pi_generator = state.pi_generator();
 
     let is_katakana = q.katakana.unwrap_or_default();
     let is_halfwidth = q.halfwidth.unwrap_or_default();
@@ -33,24 +31,21 @@ where
         (true, true) => KanaForm::HalfwidthKana,
     };
 
-    let sex = gen_sex();
-
-    let name = name_generator.generate(sex).await.map_err(|e| match e {
-        GenNameError::RequestFailure => StatusCode::INTERNAL_SERVER_ERROR,
-        GenNameError::Conflict => StatusCode::CONFLICT,
-    })?;
-    let name = match kana_form {
-        KanaForm::Hiragana => name,
-        KanaForm::Katakana => name.in_katakana(),
-        KanaForm::HalfwidthKana => name.in_halfwidth_kana(),
-    };
-    let pi = PI::from((name, sex, gen_date_of_birth()));
+    let pi = pi_generator
+        .generate(kana_form)
+        .await
+        .map_err(|e| match e {
+            GenPiError::GenNameError(e) => match e {
+                GenNameError::RequestFailure => StatusCode::INTERNAL_SERVER_ERROR,
+                GenNameError::Conflict => StatusCode::CONFLICT,
+            },
+        })?;
     Ok(Json(pi))
 }
 
-pub fn generate_pi<T>() -> Router<T>
+pub fn route<T>() -> Router<T>
 where
-    T: Clone + HasNameGenerator + Send + Sync + 'static,
+    T: Clone + HasPiGenerator + Send + Sync + 'static,
 {
     Router::new().route("/", get(handler::<T>))
 }
@@ -60,41 +55,51 @@ mod tests {
     use axum::{body::Body, http::Request};
     use tower::ServiceExt;
 
-    use crate::pi::{Name, Sex};
+    use crate::pi::{gen_date_of_birth, Name, Sex};
 
     use super::*;
 
     #[derive(Clone, Debug)]
-    struct MockNameGenerator;
+    struct MockPiGenerator;
 
     #[async_trait::async_trait]
-    impl NameGenerator for MockNameGenerator {
-        async fn generate(&self, _sex: Sex) -> Result<Name, GenNameError> {
-            Ok(Name {
+    impl PiGenerator for MockPiGenerator {
+        async fn generate(&self, _kana_form: KanaForm) -> Result<PI, GenPiError> {
+            let sex = Sex::Male;
+            let name = Name {
                 first_name: "山田".to_string(),
                 first_name_kana: "やまだ".to_string(),
                 last_name: "太郎".to_string(),
                 last_name_kana: "たろう".to_string(),
+            };
+            let date_of_birth = gen_date_of_birth();
+            Ok(PI {
+                date_of_birth,
+                first_name: name.first_name,
+                first_name_kana: name.first_name_kana,
+                last_name: name.last_name,
+                last_name_kana: name.last_name_kana,
+                sex,
             })
         }
     }
 
     #[derive(Clone, Debug)]
     struct MockApp {
-        name_generator: MockNameGenerator,
+        pi_generator: MockPiGenerator,
     }
 
-    impl HasNameGenerator for MockApp {
-        type NameGenerator = MockNameGenerator;
-        fn name_generator(&self) -> &Self::NameGenerator {
-            &self.name_generator
+    impl HasPiGenerator for MockApp {
+        type PiGenerator = MockPiGenerator;
+        fn pi_generator(&self) -> &Self::PiGenerator {
+            &self.pi_generator
         }
     }
 
     #[tokio::test]
     async fn test() -> anyhow::Result<()> {
-        let app = generate_pi().with_state(MockApp {
-            name_generator: MockNameGenerator,
+        let app = route().with_state(MockApp {
+            pi_generator: MockPiGenerator,
         });
 
         let response = app

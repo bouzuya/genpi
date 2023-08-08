@@ -12,12 +12,12 @@ use tokio::sync::Mutex;
 
 #[derive(Debug, serde::Serialize)]
 pub struct PI {
-    date_of_birth: DateOfBirth,
-    first_name: String,
-    first_name_kana: String,
-    last_name: String,
-    last_name_kana: String,
-    sex: Sex,
+    pub date_of_birth: DateOfBirth,
+    pub first_name: String,
+    pub first_name_kana: String,
+    pub last_name: String,
+    pub last_name_kana: String,
+    pub sex: Sex,
 }
 
 impl From<(Name, Sex, DateOfBirth)> for PI {
@@ -209,6 +209,22 @@ pub fn gen_date_of_birth() -> DateOfBirth {
     DateOfBirth(format!("{:04}-{:02}-{:02}", year, month, day))
 }
 
+#[derive(Clone, Debug, thiserror::Error)]
+pub enum GenPiError {
+    #[error("gen name error")]
+    GenNameError(GenNameError),
+}
+
+#[async_trait::async_trait]
+pub trait PiGenerator {
+    async fn generate(&self, kana_form: KanaForm) -> Result<PI, GenPiError>;
+}
+
+pub trait HasPiGenerator {
+    type PiGenerator: PiGenerator + Send + Sync;
+    fn pi_generator(&self) -> &Self::PiGenerator;
+}
+
 #[async_trait::async_trait]
 pub trait NameGenerator {
     async fn generate(&self, sex: Sex) -> Result<Name, GenNameError>;
@@ -225,6 +241,22 @@ type Names = Vec<Name>;
 pub struct NamesCache {
     female_names: Arc<Mutex<Option<(Instant, Names)>>>,
     male_names: Arc<Mutex<Option<(Instant, Names)>>>,
+}
+
+#[async_trait::async_trait]
+impl PiGenerator for NamesCache {
+    async fn generate(&self, kana_form: KanaForm) -> Result<PI, GenPiError> {
+        let sex = gen_sex();
+        let name = gen_name(self, sex)
+            .await
+            .map_err(GenPiError::GenNameError)?;
+        let name = match kana_form {
+            KanaForm::Hiragana => name,
+            KanaForm::Katakana => name.in_katakana(),
+            KanaForm::HalfwidthKana => name.in_halfwidth_kana(),
+        };
+        Ok(PI::from((name, sex, gen_date_of_birth())))
+    }
 }
 
 #[async_trait::async_trait]
