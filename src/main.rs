@@ -1,5 +1,6 @@
 mod config;
 mod handler;
+mod model;
 mod pi;
 mod server;
 
