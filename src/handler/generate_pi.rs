@@ -5,7 +5,7 @@ use axum::{
     Json, Router,
 };
 
-use crate::pi::{GenNameError, GenPiError, HasPiGenerator, KanaForm, PiGenerator, PI};
+use crate::model::{GenNameError, GenPiError, HasPiGenerator, KanaForm, PiGenerator, PI};
 
 #[derive(serde::Deserialize)]
 pub struct GetRootQuery {

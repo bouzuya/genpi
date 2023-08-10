@@ -1,13 +1,12 @@
 mod config;
 mod handler;
 mod model;
-mod pi;
 mod server;
 
 use anyhow::bail;
 use server::run_server;
 
-use crate::pi::{KanaForm, PI};
+use crate::model::{KanaForm, PI};
 
 #[derive(Debug, clap::Parser)]
 struct Cli {
