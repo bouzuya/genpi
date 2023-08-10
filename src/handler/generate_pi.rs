@@ -56,8 +56,8 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::{
-        model::Name,
-        pi::{gen_date_of_birth, Sex},
+        model::{DateOfBirth, Name},
+        pi::Sex,
     };
 
     use super::*;
@@ -75,7 +75,7 @@ mod tests {
                 last_name: "太郎".to_string(),
                 last_name_kana: "たろう".to_string(),
             };
-            let date_of_birth = gen_date_of_birth();
+            let date_of_birth = DateOfBirth::gen();
             Ok(PI {
                 date_of_birth,
                 first_name: name.first_name,

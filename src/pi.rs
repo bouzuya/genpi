@@ -6,10 +6,9 @@ use std::{
 use anyhow::{bail, ensure, Context};
 use rand::{thread_rng, Rng};
 use scraper::{Html, Selector};
-use time::OffsetDateTime;
 use tokio::sync::Mutex;
 
-use crate::model::Name;
+use crate::model::{DateOfBirth, Name};
 
 #[derive(Debug, serde::Serialize)]
 pub struct PI {
@@ -34,9 +33,6 @@ impl From<(Name, Sex, DateOfBirth)> for PI {
     }
 }
 
-#[derive(Debug, serde::Serialize)]
-pub struct DateOfBirth(String);
-
 #[derive(Clone, Copy, Debug, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Sex {
@@ -46,27 +42,6 @@ pub enum Sex {
 
 fn choose<T>(a: &[T]) -> &T {
     &a[thread_rng().gen_range(0..a.len())]
-}
-
-pub fn gen_date_of_birth() -> DateOfBirth {
-    let mut rng = thread_rng();
-    let current_year = OffsetDateTime::now_utc().year();
-    let year = rng.gen_range(current_year - 120..=current_year);
-    let month = rng.gen_range(1..=12);
-    let is_leap = (year % 4 == 0) && (year % 100 != 0 || year % 400 == 0);
-    let last_day_of_month = match month {
-        2 => {
-            if is_leap {
-                29
-            } else {
-                28
-            }
-        }
-        4 | 6 | 9 | 11 => 30,
-        _ => 31,
-    };
-    let day = rng.gen_range(1..=last_day_of_month);
-    DateOfBirth(format!("{:04}-{:02}-{:02}", year, month, day))
 }
 
 #[derive(Clone, Debug, thiserror::Error)]
@@ -115,7 +90,7 @@ impl PiGenerator for NamesCache {
             KanaForm::Katakana => name.in_katakana(),
             KanaForm::HalfwidthKana => name.in_halfwidth_kana(),
         };
-        Ok(PI::from((name, sex, gen_date_of_birth())))
+        Ok(PI::from((name, sex, DateOfBirth::gen())))
     }
 }
 
@@ -253,6 +228,6 @@ impl PI {
             KanaForm::Katakana => name.in_katakana(),
             KanaForm::HalfwidthKana => name.in_halfwidth_kana(),
         };
-        Ok(PI::from((name, sex, gen_date_of_birth())))
+        Ok(PI::from((name, sex, DateOfBirth::gen())))
     }
 }
