@@ -55,10 +55,7 @@ mod tests {
     use axum::{body::Body, http::Request};
     use tower::ServiceExt;
 
-    use crate::{
-        model::{DateOfBirth, Name},
-        pi::Sex,
-    };
+    use crate::model::{DateOfBirth, Name, Sex};
 
     use super::*;
 

@@ -8,7 +8,7 @@ use rand::{thread_rng, Rng};
 use scraper::{Html, Selector};
 use tokio::sync::Mutex;
 
-use crate::model::{DateOfBirth, Name};
+use crate::model::{DateOfBirth, Name, Sex};
 
 #[derive(Debug, serde::Serialize)]
 pub struct PI {
@@ -31,13 +31,6 @@ impl From<(Name, Sex, DateOfBirth)> for PI {
             sex,
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, serde::Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Sex {
-    Female,
-    Male,
 }
 
 fn choose<T>(a: &[T]) -> &T {
@@ -81,7 +74,7 @@ pub struct NamesCache {
 #[async_trait::async_trait]
 impl PiGenerator for NamesCache {
     async fn generate(&self, kana_form: KanaForm) -> Result<PI, GenPiError> {
-        let sex = gen_sex();
+        let sex = Sex::gen();
         let name = gen_name(self, sex)
             .await
             .map_err(GenPiError::GenNameError)?;
@@ -209,10 +202,6 @@ async fn gen_names(sex: Sex) -> anyhow::Result<Names> {
     Ok(names)
 }
 
-pub fn gen_sex() -> Sex {
-    *choose(&[Sex::Female, Sex::Male])
-}
-
 pub enum KanaForm {
     Hiragana,
     Katakana,
@@ -221,7 +210,7 @@ pub enum KanaForm {
 
 impl PI {
     pub async fn gen(kana_form: KanaForm) -> anyhow::Result<Self> {
-        let sex = gen_sex();
+        let sex = Sex::gen();
         let name = gen_name(&NamesCache::default(), sex).await?;
         let name = match kana_form {
             KanaForm::Hiragana => name,
