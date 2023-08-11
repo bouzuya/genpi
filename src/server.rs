@@ -8,7 +8,8 @@ use axum::{routing::get, Router, Server};
 use crate::{
     config::Config,
     handler::generate_pi,
-    model::{HasNameGenerator, HasPiGenerator, NamesCache},
+    model::{HasNameGenerator, NamesCache},
+    usecase::HasPiGenerator,
 };
 
 #[derive(Clone, Debug)]

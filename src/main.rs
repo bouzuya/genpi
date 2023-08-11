@@ -2,6 +2,7 @@ mod config;
 mod handler;
 mod model;
 mod server;
+mod usecase;
 
 use anyhow::bail;
 use server::run_server;

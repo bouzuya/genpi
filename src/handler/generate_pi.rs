@@ -5,7 +5,10 @@ use axum::{
     Json, Router,
 };
 
-use crate::model::{GenNameError, GenPiError, HasPiGenerator, KanaForm, PiGenerator, PI};
+use crate::{
+    model::{GenNameError, GenPiError, KanaForm, PI},
+    usecase::{HasPiGenerator, PiGenerator},
+};
 
 #[derive(serde::Deserialize)]
 pub struct GetRootQuery {
@@ -55,7 +58,10 @@ mod tests {
     use axum::{body::Body, http::Request};
     use tower::ServiceExt;
 
-    use crate::model::{DateOfBirth, Name, Sex};
+    use crate::{
+        model::{DateOfBirth, Name, Sex},
+        usecase::PiGenerator,
+    };
 
     use super::*;
 
