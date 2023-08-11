@@ -7,7 +7,7 @@ use axum::{
 
 use crate::{
     model::{GenNameError, GenPiError, KanaForm, PI},
-    usecase::{HasPiGenerator, PiGenerator},
+    use_case::{GeneratePiUseCase, HasGeneratePiUseCase},
 };
 
 #[derive(serde::Deserialize)]
@@ -21,9 +21,9 @@ async fn handler<T>(
     Query(q): Query<GetRootQuery>,
 ) -> Result<Json<PI>, StatusCode>
 where
-    T: Clone + HasPiGenerator + Send + Sync,
+    T: Clone + HasGeneratePiUseCase + Send + Sync,
 {
-    let pi_generator = state.pi_generator();
+    let pi_generator = state.generate_pi_use_case();
 
     let is_katakana = q.katakana.unwrap_or_default();
     let is_halfwidth = q.halfwidth.unwrap_or_default();
@@ -35,7 +35,7 @@ where
     };
 
     let pi = pi_generator
-        .generate(kana_form)
+        .generate_pi(kana_form)
         .await
         .map_err(|e| match e {
             GenPiError::GenNameError(e) => match e {
@@ -48,7 +48,7 @@ where
 
 pub fn route<T>() -> Router<T>
 where
-    T: Clone + HasPiGenerator + Send + Sync + 'static,
+    T: Clone + HasGeneratePiUseCase + Send + Sync + 'static,
 {
     Router::new().route("/", get(handler::<T>))
 }
@@ -60,7 +60,7 @@ mod tests {
 
     use crate::{
         model::{DateOfBirth, Name, Sex},
-        usecase::PiGenerator,
+        use_case::GeneratePiUseCase,
     };
 
     use super::*;
@@ -69,8 +69,8 @@ mod tests {
     struct MockPiGenerator;
 
     #[async_trait::async_trait]
-    impl PiGenerator for MockPiGenerator {
-        async fn generate(&self, _kana_form: KanaForm) -> Result<PI, GenPiError> {
+    impl GeneratePiUseCase for MockPiGenerator {
+        async fn generate_pi(&self, _kana_form: KanaForm) -> Result<PI, GenPiError> {
             let sex = Sex::Male;
             let name = Name {
                 first_name: "山田".to_string(),
@@ -95,9 +95,9 @@ mod tests {
         pi_generator: MockPiGenerator,
     }
 
-    impl HasPiGenerator for MockApp {
-        type PiGenerator = MockPiGenerator;
-        fn pi_generator(&self) -> &Self::PiGenerator {
+    impl HasGeneratePiUseCase for MockApp {
+        type GeneratePiUseCase = MockPiGenerator;
+        fn generate_pi_use_case(&self) -> &Self::GeneratePiUseCase {
             &self.pi_generator
         }
     }

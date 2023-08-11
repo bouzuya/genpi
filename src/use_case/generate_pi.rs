@@ -1,18 +1,18 @@
 use crate::model::{DateOfBirth, GenPiError, KanaForm, NameGenerator, NamesCache, Sex, PI};
 
 #[async_trait::async_trait]
-pub trait PiGenerator {
-    async fn generate(&self, kana_form: KanaForm) -> Result<PI, GenPiError>;
+pub trait GeneratePiUseCase {
+    async fn generate_pi(&self, kana_form: KanaForm) -> Result<PI, GenPiError>;
 }
 
-pub trait HasPiGenerator {
-    type PiGenerator: PiGenerator + Send + Sync;
-    fn pi_generator(&self) -> &Self::PiGenerator;
+pub trait HasGeneratePiUseCase {
+    type GeneratePiUseCase: GeneratePiUseCase + Send + Sync;
+    fn generate_pi_use_case(&self) -> &Self::GeneratePiUseCase;
 }
 
 #[async_trait::async_trait]
-impl PiGenerator for NamesCache {
-    async fn generate(&self, kana_form: KanaForm) -> Result<PI, GenPiError> {
+impl GeneratePiUseCase for NamesCache {
+    async fn generate_pi(&self, kana_form: KanaForm) -> Result<PI, GenPiError> {
         let sex = Sex::gen();
         let name = NameGenerator::generate(self, sex)
             .await

@@ -9,7 +9,7 @@ use crate::{
     config::Config,
     handler::generate_pi,
     model::{HasNameGenerator, NamesCache},
-    usecase::HasPiGenerator,
+    use_case::HasGeneratePiUseCase,
 };
 
 #[derive(Clone, Debug)]
@@ -25,10 +25,10 @@ impl HasNameGenerator for AppState {
     }
 }
 
-impl HasPiGenerator for AppState {
-    type PiGenerator = NamesCache;
+impl HasGeneratePiUseCase for AppState {
+    type GeneratePiUseCase = NamesCache;
 
-    fn pi_generator(&self) -> &Self::PiGenerator {
+    fn generate_pi_use_case(&self) -> &Self::GeneratePiUseCase {
         &self.name_generator
     }
 }
