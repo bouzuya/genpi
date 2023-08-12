@@ -59,7 +59,7 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::{
-        model::{DateOfBirth, Name, Sex},
+        model::{Name, Sex},
         use_case::GeneratePiUseCase,
     };
 
@@ -78,7 +78,7 @@ mod tests {
                 last_name: "太郎".to_string(),
                 last_name_kana: "たろう".to_string(),
             };
-            let date_of_birth = DateOfBirth::gen();
+            let date_of_birth = "2020-01-02".parse().expect("valid date");
             Ok(PI {
                 date_of_birth,
                 first_name: name.first_name,
@@ -114,7 +114,12 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
 
-        // TODO: test body
+        let body = hyper::body::to_bytes(response.into_body()).await?;
+        let body = String::from_utf8(body[..].to_vec())?;
+        assert_eq!(
+            body,
+            r#"{"date_of_birth":"2020-01-02","first_name":"山田","first_name_kana":"やまだ","last_name":"太郎","last_name_kana":"たろう","sex":"male"}"#
+        );
         Ok(())
     }
 }
