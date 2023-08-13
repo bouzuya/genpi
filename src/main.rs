@@ -1,5 +1,6 @@
 mod config;
 mod handler;
+mod infrastructure;
 mod model;
 mod server;
 mod use_case;
@@ -7,7 +8,7 @@ mod use_case;
 use anyhow::bail;
 use server::run_server;
 
-use crate::model::{KanaForm, PI};
+use crate::{infrastructure::NamesCache, model::KanaForm, use_case::GeneratePiUseCase};
 
 #[derive(Debug, clap::Parser)]
 struct Cli {
@@ -34,7 +35,8 @@ async fn main() -> anyhow::Result<()> {
             (true, false) => KanaForm::Katakana,
             (true, true) => KanaForm::HalfwidthKana,
         };
-        let pi = PI::gen(kana_form).await?;
+        let generator = NamesCache::default();
+        let pi = generator.generate_pi(kana_form).await?;
         println!("{}", serde_json::to_string(&pi)?);
         Ok(())
     }

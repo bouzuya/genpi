@@ -6,9 +6,7 @@ use std::{
 use axum::{routing::get, Router, Server};
 
 use crate::{
-    config::Config,
-    handler::generate_pi,
-    model::{HasNameGenerator, NamesCache},
+    config::Config, handler::generate_pi, infrastructure::NamesCache, model::HasNameGenerator,
     use_case::HasGeneratePiUseCase,
 };
 
