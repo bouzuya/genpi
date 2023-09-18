@@ -3,10 +3,13 @@ use std::{
     str::FromStr,
 };
 
-use axum::{extract::MatchedPath, routing::get, Router, Server};
-use hyper::Request;
-use tower_http::trace::TraceLayer;
-use tracing::info_span;
+use axum::{routing::get, Router, Server};
+use tower::ServiceBuilder;
+use tower_http::{
+    request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
+    trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
+};
+use tracing::Level;
 
 use crate::{
     config::Config, handler::generate_pi, infrastructure::NamesCache, model::HasNameGenerator,
@@ -50,17 +53,22 @@ pub async fn run_server() -> anyhow::Result<()> {
     }
     .with_state(state)
     .layer(
-        TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
-            let matched_path = request
-                .extensions()
-                .get::<MatchedPath>()
-                .map(MatchedPath::as_str);
-            info_span!(
-                "http_request",
-                method = ?request.method(),
-                matched_path,
+        ServiceBuilder::new()
+            .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(
+                        DefaultMakeSpan::new()
+                            .level(Level::INFO)
+                            .include_headers(true),
+                    )
+                    .on_response(
+                        DefaultOnResponse::new()
+                            .level(Level::INFO)
+                            .include_headers(true),
+                    ),
             )
-        }),
+            .layer(PropagateRequestIdLayer::x_request_id()),
     );
 
     let socket_addr = SocketAddr::new(
