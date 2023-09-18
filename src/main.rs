@@ -7,6 +7,7 @@ mod use_case;
 
 use anyhow::bail;
 use server::run_server;
+use tracing_subscriber::fmt::format::FmtSpan;
 
 use crate::{infrastructure::NamesCache, model::KanaForm, use_case::GeneratePiUseCase};
 
@@ -25,6 +26,10 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt()
+        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+        .init();
+
     let cli = <Cli as clap::Parser>::parse();
     if cli.server {
         Ok(run_server().await?)

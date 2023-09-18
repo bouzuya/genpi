@@ -3,7 +3,10 @@ use std::{
     str::FromStr,
 };
 
-use axum::{routing::get, Router, Server};
+use axum::{extract::MatchedPath, routing::get, Router, Server};
+use hyper::Request;
+use tower_http::trace::TraceLayer;
+use tracing::info_span;
 
 use crate::{
     config::Config, handler::generate_pi, infrastructure::NamesCache, model::HasNameGenerator,
@@ -45,7 +48,20 @@ pub async fn run_server() -> anyhow::Result<()> {
             .route("/", get(|| async { "OK" }))
             .nest(&config.base_path, router)
     }
-    .with_state(state);
+    .with_state(state)
+    .layer(
+        TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
+            let matched_path = request
+                .extensions()
+                .get::<MatchedPath>()
+                .map(MatchedPath::as_str);
+            info_span!(
+                "http_request",
+                method = ?request.method(),
+                matched_path,
+            )
+        }),
+    );
 
     let socket_addr = SocketAddr::new(
         IpAddr::from_str("0.0.0.0").expect("0.0.0.0 is valid host"),

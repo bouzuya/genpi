@@ -10,13 +10,14 @@ use crate::{
     use_case::{GeneratePiUseCase, HasGeneratePiUseCase},
 };
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub struct GetRootQuery {
     halfwidth: Option<bool>,
     katakana: Option<bool>,
 }
 
-async fn handler<T>(
+#[tracing::instrument(skip_all)]
+async fn handler<T: std::fmt::Debug>(
     State(state): State<T>,
     Query(q): Query<GetRootQuery>,
 ) -> Result<Json<PI>, StatusCode>
@@ -48,7 +49,7 @@ where
 
 pub fn route<T>() -> Router<T>
 where
-    T: Clone + HasGeneratePiUseCase + Send + Sync + 'static,
+    T: Clone + std::fmt::Debug + HasGeneratePiUseCase + Send + Sync + 'static,
 {
     Router::new().route("/", get(handler::<T>))
 }

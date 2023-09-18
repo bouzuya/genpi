@@ -47,6 +47,7 @@ pub trait HasNameGenerator {
     fn name_generator(&self) -> &Self::NameGenerator;
 }
 
+#[derive(Debug)]
 pub enum KanaForm {
     Hiragana,
     Katakana,
