@@ -11,4 +11,5 @@ RUN rustup component add \
   clippy \
   rustfmt
 RUN cargo install \
+  cargo-outdated \
   cargo-watch
