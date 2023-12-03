@@ -3,7 +3,8 @@ use std::{
     str::FromStr,
 };
 
-use axum::{routing::get, Router, Server};
+use axum::{routing::get, Router};
+use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::{
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
@@ -76,7 +77,6 @@ pub async fn run_server() -> anyhow::Result<()> {
         config.port,
     );
 
-    Ok(Server::bind(&socket_addr)
-        .serve(router.into_make_service())
-        .await?)
+    let tcp_listener = TcpListener::bind(socket_addr).await?;
+    Ok(axum::serve(tcp_listener, router.into_make_service()).await?)
 }

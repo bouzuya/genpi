@@ -114,9 +114,9 @@ mod tests {
             .await?;
 
         assert_eq!(response.status(), StatusCode::OK);
-
-        let body = hyper::body::to_bytes(response.into_body()).await?;
-        let body = String::from_utf8(body[..].to_vec())?;
+        let body = response.into_body();
+        let bytes = http_body_util::BodyExt::collect(body).await?.to_bytes();
+        let body = String::from_utf8(bytes[..].to_vec())?;
         assert_eq!(
             body,
             r#"{"date_of_birth":"2020-01-02","first_name":"山田","first_name_kana":"やまだ","last_name":"太郎","last_name_kana":"たろう","sex":"male"}"#
