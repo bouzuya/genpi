@@ -115,7 +115,7 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
         let body = response.into_body();
-        let bytes = http_body_util::BodyExt::collect(body).await?.to_bytes();
+        let bytes = axum::body::to_bytes(body, usize::MAX).await?;
         let body = String::from_utf8(bytes[..].to_vec())?;
         assert_eq!(
             body,
