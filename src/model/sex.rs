@@ -1,16 +1,8 @@
-use rand::{thread_rng, Rng};
-
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Sex {
     Female,
     Male,
-}
-
-impl Sex {
-    pub fn gen() -> Self {
-        [Self::Female, Self::Male][thread_rng().gen_range(0..1)]
-    }
 }
 
 impl rand::distributions::Distribution<Sex> for rand::distributions::Standard {
@@ -26,6 +18,8 @@ impl rand::distributions::Distribution<Sex> for rand::distributions::Standard {
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
+
+    use rand::Rng;
 
     use super::*;
 

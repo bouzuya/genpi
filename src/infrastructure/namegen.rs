@@ -136,7 +136,8 @@ async fn gen_names(sex: Sex) -> anyhow::Result<Names> {
 impl GeneratePiUseCase for NamesCache {
     #[tracing::instrument(skip(self), err, ret)]
     async fn generate_pi(&self, kana_form: KanaForm) -> Result<PI, GenPiError> {
-        let sex = Sex::gen();
+        let mut rng = rand::rngs::OsRng;
+        let sex = rng.gen::<Sex>();
         let name = NameGenerator::generate(self, sex)
             .await
             .map_err(GenPiError::GenNameError)?;
