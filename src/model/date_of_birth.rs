@@ -1,10 +1,10 @@
 use std::str::FromStr;
 
 use rand::{thread_rng, Rng};
-use time::{macros::format_description, Date, OffsetDateTime};
+use time::{macros::format_description, Date, Month, OffsetDateTime};
 
-#[derive(Debug, Eq, PartialEq, serde::Serialize)]
-pub struct DateOfBirth(String);
+#[derive(Debug, Eq, PartialEq)]
+pub struct DateOfBirth(Date);
 
 impl DateOfBirth {
     pub fn gen() -> Self {
@@ -25,7 +25,13 @@ impl DateOfBirth {
             _ => 31,
         };
         let day = rng.gen_range(1..=last_day_of_month);
-        Self(format!("{:04}-{:02}-{:02}", year, month, day))
+        let date = Date::from_calendar_date(
+            year,
+            Month::try_from(month as u8).expect("invalid month"),
+            day,
+        )
+        .expect("invalid date");
+        Self(date)
     }
 }
 
@@ -35,8 +41,18 @@ impl FromStr for DateOfBirth {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let format = format_description!("[year]-[month]-[day]");
         let date = Date::parse(s, &format)?;
-        let s = date.format(&format)?;
-        Ok(Self(s))
+        Ok(Self(date))
+    }
+}
+
+impl serde::Serialize for DateOfBirth {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(
+            &self
+                .0
+                .format(&format_description!("[year]-[month]-[day]"))
+                .expect("invalid format"),
+        )
     }
 }
 
