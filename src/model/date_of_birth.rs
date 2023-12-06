@@ -6,13 +6,8 @@ use time::{macros::format_description, Date, Duration, OffsetDateTime};
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct DateOfBirth(Date);
 
-impl DateOfBirth {
-    pub fn gen() -> Self {
-        let mut rng = thread_rng();
-        let current_year = OffsetDateTime::now_utc().year();
-        let year = rng.gen_range(current_year - 120..=current_year);
-        let date = rng.gen::<Date>();
-        let date = Date::from_calendar_date(year, date.month(), date.day()).expect("invalid date");
+impl From<Date> for DateOfBirth {
+    fn from(date: Date) -> Self {
         Self(date)
     }
 }
@@ -91,6 +86,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_from_date() -> anyhow::Result<()> {
+        let date = Date::parse("2020-01-02", format_description!("[year]-[month]-[day]"))?;
+        let dob = DateOfBirth::from(date);
+        let s = serde_json::to_string(&dob)?;
+        assert_eq!(s, r#""2020-01-02""#);
+        Ok(())
+    }
+
+    #[test]
     fn test_from_str() -> anyhow::Result<()> {
         let dob: DateOfBirth = "2020-01-02".parse()?;
         let s = serde_json::to_string(&dob)?;
@@ -115,10 +119,5 @@ mod tests {
         assert_eq!(set.len(), 2);
 
         Ok(())
-    }
-
-    #[test]
-    fn test_gen() {
-        assert_ne!(DateOfBirth::gen(), DateOfBirth::gen());
     }
 }

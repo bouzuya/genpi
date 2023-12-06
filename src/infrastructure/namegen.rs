@@ -6,6 +6,7 @@ use std::{
 use anyhow::{bail, ensure, Context};
 use rand::{thread_rng, Rng};
 use scraper::{Html, Selector};
+use time::{Date, Month, OffsetDateTime};
 use tokio::sync::Mutex;
 
 use crate::{
@@ -146,6 +147,12 @@ impl GeneratePiUseCase for NamesCache {
             KanaForm::Katakana => name.in_katakana(),
             KanaForm::HalfwidthKana => name.in_halfwidth_kana(),
         };
-        Ok(PI::from((name, sex, DateOfBirth::gen())))
+        let current_year = OffsetDateTime::now_utc().year();
+        let start =
+            Date::from_calendar_date(current_year - 120, Month::January, 1).expect("invalid date");
+        let end =
+            Date::from_calendar_date(current_year, Month::December, 31).expect("invalid date");
+        let date = rng.gen_range(DateOfBirth::from(start)..=DateOfBirth::from(end));
+        Ok(PI::from((name, sex, date)))
     }
 }
