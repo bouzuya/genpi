@@ -1,9 +1,9 @@
-use std::str::FromStr;
+use std::{ops::Range, str::FromStr};
 
 use rand::{thread_rng, Rng};
-use time::{macros::format_description, Date, Month, OffsetDateTime};
+use time::{macros::format_description, Date, Duration, OffsetDateTime};
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct DateOfBirth(Date);
 
 impl DateOfBirth {
@@ -11,26 +11,8 @@ impl DateOfBirth {
         let mut rng = thread_rng();
         let current_year = OffsetDateTime::now_utc().year();
         let year = rng.gen_range(current_year - 120..=current_year);
-        let month = rng.gen_range(1..=12);
-        let is_leap = (year % 4 == 0) && (year % 100 != 0 || year % 400 == 0);
-        let last_day_of_month = match month {
-            2 => {
-                if is_leap {
-                    29
-                } else {
-                    28
-                }
-            }
-            4 | 6 | 9 | 11 => 30,
-            _ => 31,
-        };
-        let day = rng.gen_range(1..=last_day_of_month);
-        let date = Date::from_calendar_date(
-            year,
-            Month::try_from(month as u8).expect("invalid month"),
-            day,
-        )
-        .expect("invalid date");
+        let date = rng.gen::<Date>();
+        let date = Date::from_calendar_date(year, date.month(), date.day()).expect("invalid date");
         Self(date)
     }
 }
@@ -56,8 +38,56 @@ impl serde::Serialize for DateOfBirth {
     }
 }
 
+pub struct UniformDateOfBirth(Range<Date>);
+
+impl rand::distributions::uniform::UniformSampler for UniformDateOfBirth {
+    type X = DateOfBirth;
+
+    fn new<B1, B2>(low: B1, high: B2) -> Self
+    where
+        B1: rand::distributions::uniform::SampleBorrow<Self::X> + Sized,
+        B2: rand::distributions::uniform::SampleBorrow<Self::X> + Sized,
+    {
+        let (low, high) = (low.borrow().0, high.borrow().0);
+        if low >= high {
+            panic!("low must be less than high")
+        }
+        Self(low..high)
+    }
+
+    fn new_inclusive<B1, B2>(low: B1, high: B2) -> Self
+    where
+        B1: rand::distributions::uniform::SampleBorrow<Self::X> + Sized,
+        B2: rand::distributions::uniform::SampleBorrow<Self::X> + Sized,
+    {
+        let (low, high) = (
+            low.borrow().0,
+            high.borrow().0.saturating_add(Duration::days(1)),
+        );
+        if low > high {
+            panic!("low must be less than or equal to high")
+        }
+        Self(low..high)
+    }
+
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Self::X {
+        DateOfBirth(
+            Date::from_julian_day(
+                rng.gen_range(self.0.start.to_julian_day()..self.0.end.to_julian_day()),
+            )
+            .expect("invalid date"),
+        )
+    }
+}
+
+impl rand::distributions::uniform::SampleUniform for DateOfBirth {
+    type Sampler = UniformDateOfBirth;
+}
+
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
 
     #[test]
@@ -65,6 +95,25 @@ mod tests {
         let dob: DateOfBirth = "2020-01-02".parse()?;
         let s = serde_json::to_string(&dob)?;
         assert_eq!(s, r#""2020-01-02""#);
+        Ok(())
+    }
+
+    #[test]
+    fn test_gen_range() -> anyhow::Result<()> {
+        let mut rng = rand::thread_rng();
+
+        let low = "2020-01-01".parse::<DateOfBirth>()?;
+        let high = "2020-01-02".parse::<DateOfBirth>()?;
+        let gen = rng.gen_range(low..high);
+        assert_eq!(gen, low);
+
+        let mut set = HashSet::new();
+        for _ in 0..100 {
+            let gen = rng.gen_range(low..=high);
+            set.insert(gen);
+        }
+        assert_eq!(set.len(), 2);
+
         Ok(())
     }
 
