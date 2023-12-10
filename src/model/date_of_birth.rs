@@ -1,7 +1,7 @@
 use std::{ops::Range, str::FromStr};
 
-use rand::{thread_rng, Rng};
-use time::{macros::format_description, Date, Duration, OffsetDateTime};
+use rand::Rng;
+use time::{macros::format_description, Date, Duration};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct DateOfBirth(Date);
