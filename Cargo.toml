@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.72"
 async-trait = "0.1.77"
-axum = "0.7.2"
+axum = "0.7.3"
 clap = { version = "4.4.11", features = ["derive"] }
 hyper = { version = "1.1.0", features = ["full"] }
 rand = "0.8.5"
