@@ -7,7 +7,7 @@ edition = "2021"
 anyhow = "1.0.79"
 async-trait = "0.1.77"
 axum = "0.7.3"
-clap = { version = "4.4.13", features = ["derive"] }
+clap = { version = "4.4.17", features = ["derive"] }
 hyper = { version = "1.1.0", features = ["full"] }
 rand = "0.8.5"
 reqwest = { version = "0.11.23", default-features = false, features = [
