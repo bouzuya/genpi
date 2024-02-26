@@ -135,7 +135,9 @@ async fn gen_names(sex: Sex) -> anyhow::Result<Names> {
 
 #[async_trait::async_trait]
 impl GeneratePiUseCase for NamesCache {
+    // <https://github.com/tokio-rs/tracing/issues/2876>
     #[tracing::instrument(skip(self), err, ret)]
+    #[allow(clippy::blocks_in_conditions)]
     async fn generate_pi(&self, kana_form: KanaForm) -> Result<PI, GenPiError> {
         let mut rng = rand::rngs::OsRng;
         let sex = rng.gen::<Sex>();
