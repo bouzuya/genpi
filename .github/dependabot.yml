@@ -7,7 +7,13 @@ updates:
       interval: weekly
       time: "15:00"
   - package-ecosystem: docker
-    directory: /
+    directory: /docker/dev/
+    schedule:
+      day: tuesday
+      interval: weekly
+      time: "15:00"
+  - package-ecosystem: docker
+    directory: /docker/production/
     schedule:
       day: tuesday
       interval: weekly
